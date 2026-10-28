@@ -1,0 +1,5 @@
+# Let git normalize line endings for text files...
+* text=auto
+
+# ...but Windows batch files must keep CRLF line endings or they can misbehave.
+*.bat text eol=crlf

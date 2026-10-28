@@ -1,0 +1,8 @@
+# namePicker uses only Python's standard library (csv, random, dataclasses,
+# datetime, tempfile, ...), so there is nothing to install.
+#
+# This file exists so the setup steps are the same as any other Python
+# project (`pip install -r requirements.txt`) and so there is an obvious
+# place to list a package if you ever add one, e.g.:
+#
+#   rich>=13.0

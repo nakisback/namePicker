@@ -1,0 +1,38 @@
+# --- Student data (PRIVATE: never commit real class rosters) ---
+# Real class files live in classes/ and are kept out of git on purpose.
+# A fake example lives in sample_data/ instead.
+classes/*.csv
+# Leftovers from an interrupted save (storage.py writes a temp file first)
+classes/tmp*
+# Excel lock files created while a CSV is open
+classes/~$*
+classes/.~lock*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+
+# --- Secrets / local settings ---
+.env
+
+# --- Editors / IDEs ---
+.vscode/
+.idea/
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Personal / not for the public repo ---
+# Delete a line below if you DO want that thing on GitHub.
+*.docx
+Old Code/
