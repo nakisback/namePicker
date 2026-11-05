@@ -79,14 +79,18 @@ def main() -> None:
             run_task_caller(path, roster, "qCount", "questions", num)
         elif choice in TASK_LABELS:
             category, label = TASK_LABELS[choice]
+            if label == "passing out books":
+                sublabel = "Make sure to only carry 1-3 books at a time!"
+            else:
+                sublabel = None
             num = ui.ask_number("How many students to call? ")
-            run_task_caller(path, roster, category, label, num)
-        elif choice == "5":
-            run_group_maker(path, roster)
+            run_task_caller(path, roster, category, label, num, sublabel)
         elif choice == "6":
+            run_group_maker(path, roster)
+        elif choice == "7":
             num = ui.ask_number("How many questions? ")
             run_jeopardy(path, roster, num)
-        elif choice == "7":
+        elif choice == "8":
             run_spinner(path, roster)
 
         print()

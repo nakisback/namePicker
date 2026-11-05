@@ -90,6 +90,7 @@ See [`sample_data/G2-1.csv`](sample_data/G2-1.csv) for a complete example.
 | `A` | Mark the last student absent |
 | `N` | Call the next person instead |
 | `C <name>` | Choose a specific student (partial names work if unique) |
+| `R <name>` | Remove from called |
 | `D` | Drumroll |
 | `S` | Stop and go to the save prompt |
 

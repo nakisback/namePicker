@@ -29,9 +29,9 @@ class CallQueue:
     def _build_order(self, students: List[Student], shuffle: bool) -> List[Student]:
         buckets = {}
         for s in students:
-            buckets.setdefault(s.count(self.category), []).append(s)
+            key = (s.called_today(self.category), s.count(self.category))
+            buckets.setdefault(key, []).append(s)
         order = []
-        #print(f"Buckets for category '{self.category}': {buckets}")
         for count in sorted(buckets):
             group = buckets[count]
             if shuffle:
@@ -49,23 +49,15 @@ class CallQueue:
         return len(self._queue)
 
     def call_next(self) -> Student:
-        """Calls the student at the front of the queue: removes them and
-        records them as called for this session."""
-        if len(self._queue) == 0:
-            self._queue = self.called.copy()
-            #raise IndexError("No students left in the queue to call.")
         student = self._queue.pop(0)
-        self._queue.append(student)  # put them at the end of the queue for next time
+        self._queue.append(student)      # back of the line for next time
         self.called.append(student)
         return student
 
     def mark_absent(self) -> Optional[Student]:
-        """The student at the front of the queue isn't here today — remove
-        them from the queue without counting it as a call."""
-        student = self.called.pop() if self.called else None
-        self._queue.append(student)  # put them at the end of the queue for next time
-        return student
-        #return self._queue.pop(0) if self._queue else None 
+        # call_next() already moved them to the back, so just un-call them
+        return self.called.pop() if self.called else None    
+
 
     def defer(self) -> None:
         """The student at the front asked to go after the next person
@@ -77,7 +69,6 @@ class CallQueue:
         """Teacher wants a specific student called next, out of order.
         Returns the matched student, or None if not found / already
         called / not in this queue."""
-        print(f"Choosing {name} from queue: {[s.name for s in self._queue]}")
         student = roster.find(name)
         if student is None or student not in self._queue:
             return None
@@ -89,19 +80,11 @@ class CallQueue:
         """Teacher wants a specific student removed from called entirely
         (e.g. they left class). Returns the matched student, or None if not
         found / already called / not in this queue."""
-        print(f"Removing {name} from queue: {[s.name for s in self._queue]}")
         student = roster.find(name)
-        if student is None or student not in self._queue:
+        if student is None or student not in self.called:
             return None
         self.called.remove(student)
         return student
-
-    def count_increments(self) -> None:
-        """Sorts the called list by student number, so the teacher can see
-        at a glance who has been called this session. Does not change the
-        order of the queue itself."""
-        for s in self.called:
-            s.increment += 1
 
 
 

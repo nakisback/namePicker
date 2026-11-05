@@ -12,6 +12,7 @@ know what kind of object it's showing.
 
 import os
 import time
+import textwrap
 
 import config
 
@@ -52,7 +53,7 @@ def _row(text: str = "") -> str:
     return f"{_wall()}{pad}{text}{pad}{_wall()}"
 
 
-def box(lines, title: str = None) -> None:
+def box(lines, title: str = None, subtitle: str = None) -> None:
     """Prints a bordered box. `lines` is a list of already-short strings
     (use textwrap.wrap yourself, or pass short lines) — one per row."""
     clear()
@@ -63,6 +64,11 @@ def box(lines, title: str = None) -> None:
     print(_row())
     if title:
         print(_row(title))
+        if subtitle:
+            wrapped_subtitle = textwrap.wrap(subtitle, width=_content_width()-(config.PADDING * 2))
+            for line in wrapped_subtitle:
+                print(_row(f"{" " * config.PADDING}{line}{" " * config.PADDING}"))
+            #print(_row(subtitle))
         print(_row())
     for line in lines:
         print(_row(str(line)))
@@ -71,8 +77,8 @@ def box(lines, title: str = None) -> None:
         print(border)
 
 
-def numbered_box(items, title: str = None) -> None:
-    box([f"{i + 1}. {item}" for i, item in enumerate(items)], title=title)
+def numbered_box(items, title: str = None, subtitle: str = None) -> None:
+    box([f"{i + 1}. {item}" for i, item in enumerate(items)], title=title, subtitle=subtitle)
 
 
 def menu(options: dict, prompt: str = "Please choose an option:") -> str:

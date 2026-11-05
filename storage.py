@@ -45,7 +45,6 @@ def load_roster(path: str) -> Roster:
                     group=row.get("group", ""),
                     counts=counts,
                     last_called=last_called,
-                    increment=0,
                 )
             )
     return Roster(room=room or "", students=students)

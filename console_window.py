@@ -28,8 +28,24 @@ import os
 import config
 
 
+# def apply_window_settings() -> None:
+#     if os.name != "nt" or not config.ENABLE_WINDOW_STYLING:
+#         return
+#     try:
+#         _resize_and_center()
+#     except Exception:
+#         pass
+#     try:
+#         _set_font()
+#     except Exception:
+#         pass
+
+# November 5th, 2026
 def apply_window_settings() -> None:
     if os.name != "nt" or not config.ENABLE_WINDOW_STYLING:
+        return
+    # Windows Terminal owns its own window; the legacy APIs break it.
+    if os.environ.get("WT_SESSION"):
         return
     try:
         _resize_and_center()
@@ -53,7 +69,12 @@ def _resize_and_center() -> None:
     screen_w = user32.GetSystemMetrics(SM_CXSCREEN)
     screen_h = user32.GetSystemMetrics(SM_CYSCREEN)
 
-    w, h = config.WINDOW_WIDTH_PX, config.WINDOW_HEIGHT_PX
+    # w, h = config.WINDOW_WIDTH_PX, config.WINDOW_HEIGHT_PX
+
+    # November 5th, 2026
+    w = min(config.WINDOW_WIDTH_PX, screen_w - 100)
+    h = min(config.WINDOW_HEIGHT_PX, screen_h - 150)
+
     x = max(0, (screen_w - w) // 2)
     y = max(0, (screen_h - h) // 2)
 

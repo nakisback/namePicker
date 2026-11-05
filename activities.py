@@ -15,8 +15,8 @@ mode.
 
 import random
 from typing import List
+from collections import Counter
 
-import config
 import fun
 import grouping
 import storage
@@ -25,11 +25,12 @@ from call_queue import CallQueue
 from models import Group, Roster, Student
 
 
+
 # --- Shared command handling for any "call students one by one" mode ---
 
 COMMAND_HELP = (
     "ENTER = call them  |  A = absent  |  N = call next person instead  |  "
-    "C <name> = choose a specific student  |  D = drumroll  |  S = stop & save"
+    "C <name> = choose a specific student  |  R <name> = remove from called  |  D = drumroll  |  S = stop & save"
 )
 
 
@@ -57,7 +58,7 @@ def _handle_command(queue: CallQueue, roster: Roster, response: str) -> str:
             name = response[1:].strip() or ui.ask_text("Remove who? ")
         student = queue.remove(name, roster)
         if student is None:
-            print(f"Couldn't find '{name}' still waiting to be called.")
+            print(f"{name} hasn't been called yet, or matches more than one student.")
     elif upper.startswith("D"):
         for i in range(3, 0, -1):
             print(f"{i}...  DRUMROLLLLLLLLL...")
@@ -70,7 +71,7 @@ def _handle_command(queue: CallQueue, roster: Roster, response: str) -> str:
             name = response[1:].strip() or ui.ask_text("Choose who? ")
         student = queue.choose(name, roster)
         if student is None:
-            print(f"Couldn't find '{name}' still waiting to be called.")
+            print(f"Couldn't find a student matching '{name}'.")
         else:
             queue.call_next()  # actually call them now that they're at the front
     else:
@@ -79,56 +80,52 @@ def _handle_command(queue: CallQueue, roster: Roster, response: str) -> str:
     return "continue"
 
 
-def _run_calling_loop(queue: CallQueue, roster: Roster, num: int, title: str, category: str) -> None:
+def _run_calling_loop(queue: CallQueue, roster: Roster, num: int, title: str, subtitle: str, category: str) -> None:
     continue_loop = False
-    while len(queue.called) <= num or continue_loop:
-        ui.numbered_box([str(s) for s in queue.called], title=title)
-        if len(queue.called) == num and not continue_loop:
+    while True:
+        ui.numbered_box([str(s) for s in queue.called], title=title, subtitle=subtitle)
+        if len(queue.called) >= num and not continue_loop:
             print(f"\nAll done! {len(queue.called)} students called for {title}.")
-            if not ui.ask_yes_no("Are you finished calling?"):
-                continue_loop = True
-            else:
+            if ui.ask_yes_no("Are you finished calling?"):
                 break
-                
-
-        #next_up = queue.peek()
-        #last = next_up.last_called_display(category)
-        #print(f"\nNext up: {next_up}   (last called: {last})")
-        #print(COMMAND_HELP)
-        else:
-            response = ui.ask_text(">>> ")
-
-        
+            else:
+                ui.numbered_box([str(s) for s in queue.called], title=title)
+            continue_loop = True
+        response = ui.ask_text(">>> ")
         if _handle_command(queue, roster, response) == "stop":
             break
+
     ui.transition("Wrapping up")
     ui.numbered_box([str(s) for s in queue.called], title=f"{title} (done)")
-    queue.count_increments()
 
 
-def _offer_save(path: str, called: List[Student], category: str) -> None:
+def _offer_save(path, called, category):
     if not called:
         print("Nobody was called — nothing to save.")
         return
-    if ui.ask_yes_no(f"Save these {len(called)} call(s)?"):
-        try:
-            storage.save_counts(path, called, category)
-            ui.transition("Saving")
-            for i, s in enumerate(list(set(called))):
-                print(f"  {i+1}. {s}    {category}: {s.count(category)} -> {s.count(category) + s.increment}")
-            print(f"Saved successfully to {path}.")
-            ui.pause(4)
-        except PermissionError as e:
-            print(e)
+    if not ui.ask_yes_no(f"Save these {len(called)} call(s)?"):
+        return
+    try:
+        storage.save_counts(path, called, category)
+    except PermissionError as e:
+        print(e)
+        return                      # failed save: don't touch memory
+    ui.transition("Saving")
+    for i, (s, times) in enumerate(Counter(called).items(), 1):
+        before = s.count(category)
+        s.record_call(category, times)
+        print(f"  {i}. {s}    {category}: {before} -> {s.count(category)}")
+    print(f"Saved successfully to {path}.")
+    ui.pause(4)
 
 
 # --- Questions / Books / Brooms / Volunteers (all the same mechanic) ---
 
-def run_task_caller(path: str, roster: Roster, category: str, label: str, num: int) -> None:
+def run_task_caller(path: str, roster: Roster, category: str, label: str, num: int, sublabel: str = None) -> None:
     queue = CallQueue(roster.students, category)
     fun.offer_countdown()
     ui.transition("Alright, here we go")
-    _run_calling_loop(queue, roster, num, title=f"Calling students for {label}", category=category)
+    _run_calling_loop(queue, roster, num, title=f"Calling students for {label}:", subtitle=sublabel, category=category)
     _offer_save(path, queue.called, category)
     input("Press ENTER to return to the main menu.")
 

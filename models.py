@@ -29,7 +29,7 @@ class Student:
     # category -> ISO date string (e.g. "2026-09-12") of the last time this
     # student was called for that category. Empty string means never.
     last_called: Dict[str, str] = field(default_factory=dict)
-    increment: int = 0  # how many times this student has been called in the current session
+    #increment: int = 0  # how many times this student has been called in the current session
 
     def count(self, category: str) -> int: 
         return int(self.counts.get(category, 0))
@@ -55,6 +55,18 @@ class Student:
         if delta < 0:
             return raw  # a future date got in there somehow — just show it raw
         return f"{delta} days ago"
+
+    
+    # Added Oct 28, 2026 -- called_today() and record_call()
+    def called_today(self, other_than: str = None) -> bool:
+        today = date.today().isoformat()
+        return any(day == today for cat, day in self.last_called.items()
+                if cat != other_than)
+  
+    def record_call(self, category: str, times: int = 1) -> None:
+        """Mirror what save_counts wrote to the CSV, in memory."""
+        self.counts[category] = self.count(category) + times
+        self.last_called[category] = date.today().isoformat()
 
     def __str__(self) -> str:
         return f"{self.name} (#{self.number})"
