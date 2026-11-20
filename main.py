@@ -91,6 +91,8 @@ def main() -> None:
             num = ui.ask_number("How many questions? ")
             run_jeopardy(path, roster, num)
         elif choice == "8":
+            num = ui.ask_number("How many students to call? ")
+            #run_task_caller(path, roster, "sCount", "spinning", num)
             run_spinner(path, roster)
 
         print()

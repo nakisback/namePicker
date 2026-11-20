@@ -82,6 +82,7 @@ def countdown_eenie() -> None:
     ui.clear()
 
 
+
 COUNTDOWNS = {
     "1": ("Eenie meenie miney moe", countdown_eenie),
     "2": ("Are you ready, kids?! (with ascii countdown)", countdown_captain),

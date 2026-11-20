@@ -11,7 +11,9 @@ flexibility (nothing ever overrode the getters), so it's simpler to drop it.
 import shutil
 
 # --- Terminal box sizing ---
-WIDTH = min(56, shutil.get_terminal_size().columns - 2)
+CONSOLE_COLS = 60    # how many characters wide the window is
+CONSOLE_LINES = 25   # how many lines tall the window is
+WIDTH = min(56, CONSOLE_COLS - 2)
 #print(f"shutil.get_terminal_size().columns: {shutil.get_terminal_size().columns}")
 WALL_CHARS = 4          # how many BORDER_CHAR characters make up a side wall
 PADDING = 3             # spaces of padding inside the wall on each side
@@ -49,6 +51,7 @@ FIELDS = [
     "bCount", "bLast",
     "jCount", "jLast",
     "pCount", "pLast",
+    "sCount", "sLast",
     "group",
 ]
 
@@ -67,6 +70,7 @@ LAST_CALLED_FIELD = {
     "bCount": "bLast",
     "jCount": "jLast",
     "pCount": "pLast",
+    "sCount": "sLast",
 }
 
 CLASSES = ["1", "2", "3", "4", "5", "6", "7"]

@@ -19,7 +19,10 @@ import config
 
 def clear() -> None:
     if config.CLEAR_SCREEN:
-        os.system("cls" if os.name == "nt" else "clear")
+        try:
+            os.system("cls" if os.name == "nt" else "clear")
+        except Exception:
+            pass  # if the system call fails, just leave the screen as-is
 
 
 def pause(seconds: float) -> None: 

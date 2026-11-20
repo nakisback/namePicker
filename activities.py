@@ -183,10 +183,16 @@ def run_jeopardy(path: str, roster: Roster, num_questions: int) -> None:
 # --- Spinner: fast-cycling random pick, stop with an empty ENTER ---
 
 def run_spinner(path: str, roster: Roster) -> None:
-    queue_students = roster.students[:]
-    random.shuffle(queue_students)
+    #queue_students = roster.students[:]
+    queue = CallQueue(roster.students, category="sCount")
+    _run_spinner_loop(queue, roster, num=1, title="Spinning for a student...")
+    
+
+    _offer_save(path, queue.called, "qCount")
+
+def _run_spinner_loop(queue: CallQueue, roster: Roster, num: int, title: str) -> List[Student]:
     chosen: List[Student] = []
-    speed = 0.15
+    speed = 0.5
 
     print("Press ENTER to stop the spinner and lock in a name.")
     print("(Type 'faster' or 'slower' after stopping to adjust the pace.)")
@@ -196,28 +202,43 @@ def run_spinner(path: str, roster: Roster) -> None:
         i = 0
         picked = None
         while picked is None:
-            student = queue_students[i % len(queue_students)]
-            print(student)
+            student = queue._queue[i % len(queue._queue)]
+            queue.called.append(student)
+            ui.numbered_box([str(s) for s in queue.called], title="Spinning...")
+            queue.called.pop()
             try:
                 ui.pause(speed)
             except KeyboardInterrupt:
                 picked = student
+                queue.called.append(picked)
                 break
             i += 1
-            # Non-blocking-ish stop: check for buffered ENTER isn't portable
-            # across terminals, so we keep it simple and let Ctrl+C stop it,
-            # same as the original spinner did.
-        chosen.append(picked)
-        ui.box([str(picked)], title="Chosen!")
-        again = ui.ask_text("Spin again? (Y/N, or Y-FASTER / Y-SLOWER): ").strip().upper()
-        if again.startswith("Y-FASTER"):
-            speed /= 2
-        elif again.startswith("Y-SLOWER"):
-            speed *= 2
-        if not again.startswith("Y"):
-            break
+        
 
-    _offer_save(path, chosen, "qCount")
+    # while True:
+    #     i = 0
+    #     picked = None
+    #     while picked is None:
+    #         student = queue._queue[i % len(queue._queue)]
+    #         ui.clear()
+    #         ui.box([str(student)], title="Spinning...")
+    #         try:
+    #             ui.pause(speed)
+    #         except KeyboardInterrupt:
+    #             picked = student
+    #             break
+    #         i += 1
+    #     chosen.append(picked)
+    #     ui.box([str(picked)], title="Chosen!")
+    #     again = ui.ask_text("Spin again? (Y/N, or Y-FASTER / Y-SLOWER): ").strip().upper()
+    #     if again.startswith("Y-FASTER"):
+    #         speed /= 2
+    #     elif again.startswith("Y-SLOWER"):
+    #         speed *= 2
+    #     if not again.startswith("Y"):
+    #         break
+
+    # return chosen
 
 
 # --- Groups ---

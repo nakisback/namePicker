@@ -27,20 +27,18 @@ import os
 
 import config
 
+class COORD(ctypes.Structure):
+    _fields_ = [("X", ctypes.c_short), ("Y", ctypes.c_short)]
 
-# def apply_window_settings() -> None:
-#     if os.name != "nt" or not config.ENABLE_WINDOW_STYLING:
-#         return
-#     try:
-#         _resize_and_center()
-#     except Exception:
-#         pass
-#     try:
-#         _set_font()
-#     except Exception:
-#         pass
+class SMALL_RECT(ctypes.Structure):
+    _fields_ = [("Left", ctypes.c_short), ("Top", ctypes.c_short),
+                ("Right", ctypes.c_short), ("Bottom", ctypes.c_short)]
 
-# November 5th, 2026
+class RECT(ctypes.Structure):
+    _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long),
+                ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
+
+
 def apply_window_settings() -> None:
     if os.name != "nt" or not config.ENABLE_WINDOW_STYLING:
         return
@@ -48,48 +46,70 @@ def apply_window_settings() -> None:
     if os.environ.get("WT_SESSION"):
         return
     try:
-        _resize_and_center()
+        ctypes.windll.user32.SetProcessDPIAware()
     except Exception:
         pass
     try:
-        _set_font()
+        _set_font()           # 1st: font
+    except Exception:
+        pass
+    try:
+        _set_size()           # 2nd: size (in letters)
+    except Exception:
+        pass
+    try:
+        _center()             # 3rd: center it
     except Exception:
         pass
 
 
-def _resize_and_center() -> None:
-    user32 = ctypes.windll.user32
+def _set_size() -> None:
     kernel32 = ctypes.windll.kernel32
+    handle = kernel32.GetStdHandle(-11)
 
-    hwnd = kernel32.GetConsoleWindow()
+    # Ask Windows: with this font, what's the biggest window that fits?
+    kernel32.GetLargestConsoleWindowSize.restype = ctypes.c_uint32
+    largest = kernel32.GetLargestConsoleWindowSize(handle)
+    max_cols = largest & 0xFFFF
+    max_lines = (largest >> 16) & 0xFFFF
+
+    cols = min(config.CONSOLE_COLS, max_cols)
+    lines = min(config.CONSOLE_LINES, max_lines)
+
+    # a) shrink the window to tiny so Windows lets us change the buffer
+    kernel32.SetConsoleWindowInfo(handle, True, ctypes.byref(SMALL_RECT(0, 0, 0, 0)))
+    # b) set the buffer: our width, 3000 lines of scroll-back
+    kernel32.SetConsoleScreenBufferSize(handle, COORD(cols, 3000))
+    # c) grow the window to the size we want
+    kernel32.SetConsoleWindowInfo(handle, True, ctypes.byref(SMALL_RECT(0, 0, cols - 1, lines - 1)))
+
+
+def _center() -> None:
+    user32 = ctypes.windll.user32
+    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
     if not hwnd:
         return
 
-    SM_CXSCREEN, SM_CYSCREEN = 0, 1
-    screen_w = user32.GetSystemMetrics(SM_CXSCREEN)
-    screen_h = user32.GetSystemMetrics(SM_CYSCREEN)
+    # Measure how big the window ACTUALLY ended up
+    r = RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(r))
+    w = r.right - r.left
+    h = r.bottom - r.top
 
-    # w, h = config.WINDOW_WIDTH_PX, config.WINDOW_HEIGHT_PX
-
-    # November 5th, 2026
-    w = min(config.WINDOW_WIDTH_PX, screen_w - 100)
-    h = min(config.WINDOW_HEIGHT_PX, screen_h - 150)
-
+    screen_w = user32.GetSystemMetrics(0)
+    screen_h = user32.GetSystemMetrics(1)
     x = max(0, (screen_w - w) // 2)
     y = max(0, (screen_h - h) // 2)
 
-    SW_RESTORE = 9  # un-maximize first, or MoveWindow won't visibly apply
-    user32.ShowWindow(hwnd, SW_RESTORE)
-    user32.MoveWindow(hwnd, x, y, w, h, True)
+    # Move only — don't change the size
+    SWP_NOSIZE, SWP_NOZORDER = 0x0001, 0x0004
+    user32.SetWindowPos(hwnd, 0, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER)
 
 
 def _set_font() -> None:
     kernel32 = ctypes.windll.kernel32
     STD_OUTPUT_HANDLE = -11
     handle = kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
-
-    class COORD(ctypes.Structure):
-        _fields_ = [("X", ctypes.c_short), ("Y", ctypes.c_short)]
 
     class CONSOLE_FONT_INFOEX(ctypes.Structure):
         _fields_ = [
