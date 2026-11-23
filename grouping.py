@@ -39,12 +39,12 @@ def by_sections(students: List[Student], num_groups: int) -> List[Group]:
         g.members = students[idx: idx + size]
         idx += size
         if g.members:
-            g.name = f"Group {g.name} (#{g.members[0].number}-{g.members[-1].number})"
+            g.name = f"Section {g.name} (#{g.members[0].number}-{g.members[-1].number})"
     return groups
 
 
 def random_groups(students: List[Student], num_groups: int) -> List[Group]:
-    groups = [Group(str(i + 1)) for i in range(num_groups)]
+    groups = [Group(f"Group {str(i + 1)}") for i in range(num_groups)]
     shuffled = students[:]
     random.shuffle(shuffled)
     # Round-robin after a shuffle gives evenly-sized, genuinely random

@@ -81,7 +81,7 @@ class Group:
     members: List[Student] = field(default_factory=list)
 
     def __str__(self) -> str:
-        return f"{self.name} ({len(self.members)} ppl.)"
+        return f"{self.name} ({len(self.members)} ppl.):"
 
 
 @dataclass

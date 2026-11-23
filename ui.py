@@ -41,12 +41,23 @@ def transition(message: str) -> None:
     pause(config.TRANSITION_DELAY)
 
 
+def header(text: str) -> str:
+    """A centered title bar like '====== Group 1 ======', sized to fit
+    inside box(). Pass it to box() as one of the lines."""
+    return f" {text} ".center(_wrap_width(), "=")
+
+
 def _wall() -> str:
     return config.BORDER_CHAR * config.WALL_CHARS
 
 
 def _content_width() -> int:
     return config.WIDTH - (config.WALL_CHARS * 2) - (config.PADDING * 2)
+
+
+def _wrap_width() -> int:
+    """How wide a line passed to box() can be before it wraps."""
+    return _content_width()
 
 
 def _row(text: str = "") -> str:
@@ -74,7 +85,12 @@ def box(lines, title: str = None, subtitle: str = None) -> None:
             #print(_row(subtitle))
         print(_row())
     for line in lines:
-        print(_row(str(line)))
+        line = str(line)
+        # textwrap.wrap("") returns [], which would silently drop blank
+        # spacer rows — so print an empty row for those explicitly.
+        wrapped_lines = textwrap.wrap(line, width=_wrap_width()) or [""]
+        for l in wrapped_lines:
+            print(_row(l))
     print(_row())
     for _ in range(config.BORDER_ROWS):
         print(border)

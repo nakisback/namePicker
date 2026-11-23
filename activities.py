@@ -138,46 +138,91 @@ def run_jeopardy(path: str, roster: Roster, num_questions: int) -> None:
         print("No groups to run Jeopardy with.")
         return
 
+    
+
     for g in groups:
         random.shuffle(g.members)
+
+    random.shuffle(groups)
+
+    ui.numbered_box([f"{g.name}" for g in groups], title="Group Order:")
 
     fun.offer_countdown()
     ui.transition("Alright, here we go")
 
     called: List[Student] = []
+    # One entry per question actually asked: (round, question #, group, student)
+    log: List[tuple] = []
     round_num = 0
     asked = 0
 
+    # Each group's members list is its line-up: the person at the front is
+    # asked next. After being asked they go to the back of the line. Anyone
+    # skipped with N is put back at the FRONT, so they're first up next round.
     while asked < num_questions:
-        print(f"\n--- Round {round_num + 1} ---")
         for g in groups:
-            if not g.members:
-                continue
-            student = g.members[round_num % len(g.members)]
-            last = student.last_called_display("jCount")
-            response = ui.ask_text(
-                f"Q{asked + 1}. {g.name} - {student}  (last called: {last})\n"
-                f"[ENTER=asked, A=absent, N=skip to next teammate, S=stop] "
-            )
-            upper = response.strip().upper()
-            if upper.startswith("S"):
-                asked = num_questions
-                break
-            elif upper.startswith("A"):
-                print(f"{student} is absent.")
-                if ui.ask_yes_no(f"Remove {student} from {g.name} for today?"):
-                    g.members.remove(student)
-            elif upper.startswith("N"):
-                print(f"Skipping to the next teammate after {student}.")
-            else:
-                called.append(student)
-                asked += 1
+            skipped: List[Student] = []
+            while g.members and asked < num_questions:
+                student = g.members[0]
+                _jeopardy_box(log, num_questions, round_num + 1, asked + 1, g, student)
+                response = ui.ask_text(
+                    ">>> "
+                )
+                upper = response.strip().upper()
+                if upper.startswith("S"):
+                    asked = num_questions
+                    break
+                elif upper.startswith("A"):
+                    print(f"{student} is absent.")
+                    g.members.pop(0)
+                    if not ui.ask_yes_no(f"Remove {student} from {g.name} for today?"):
+                        g.members.append(student)   # keep them, back of the line
+                    break
+                elif upper.startswith("N"):
+                    skipped.append(g.members.pop(0))
+                    if not g.members:
+                        print(f"Everyone in {g.name} was skipped — moving on.")
+                        break
+                    print(f"Skipping {student} — asking a teammate instead.")
+                    continue
+                else:
+                    g.members.pop(0)
+                    g.members.append(student)       # back of the line
+                    called.append(student)
+                    log.append((round_num + 1, asked + 1, g.name, student))
+                    asked += 1
+                    break
+            # Skipped students go back to the front, in the order skipped.
+            g.members[:0] = skipped
             if asked >= num_questions:
                 break
         round_num += 1
 
+    _jeopardy_box(log, num_questions, done=True)
     ui.transition("Wrapping up")
     _offer_save(path, called, "jCount")
+
+
+def _jeopardy_box(log, num_questions, round_num=None, q_num=None,
+                  group=None, student=None, done=False) -> None:
+    """Draws the Jeopardy scoreboard: every question asked so far, grouped
+    by round, plus who's up next (unless the game is done)."""
+    lines = []
+    current_round = None
+    for r, q, group_name, s in log:
+        if r != current_round:
+            lines.append(ui.header(f"Round {r}"))
+            current_round = r
+        lines.append(f"Q{q}. {s} - {group_name}")
+
+    if not done:
+        if round_num != current_round:
+            lines.append(ui.header(f"Round {round_num}"))
+        lines.append(f">> Q{q_num}. {student} - {group.name}")
+
+    title = "Jeopardy (done)" if done else "Jeopardy"
+    subtitle = f"{len(log)} of {num_questions} questions asked"
+    ui.box(lines, title=title, subtitle=subtitle)
 
 
 # --- Spinner: fast-cycling random pick, stop with an empty ENTER ---
@@ -263,14 +308,16 @@ def run_group_maker(path: str, roster: Roster, return_only: bool = False):
 
     _display_groups(groups)
 
-    if return_only:
-        return groups
+    
 
     while True:
         if not ui.ask_yes_no("Does anything need to be changed?"):
             break
         _edit_groups(groups)
         _display_groups(groups)
+
+    if return_only:
+        return groups
 
     if ui.ask_yes_no("Save these groups to the class roster?"):
         storage.save_groups(path, groups)
@@ -282,7 +329,7 @@ def run_group_maker(path: str, roster: Roster, return_only: bool = False):
 def _display_groups(groups: List[Group]) -> None:
     lines = []
     for g in groups:
-        lines.append(str(g))
+        lines.append(ui.header(str(g)))
         lines.append(", ".join(str(s) for s in g.members) or "(empty)")
         lines.append("")
     ui.box(lines, title="Groups")
